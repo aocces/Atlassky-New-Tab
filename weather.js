@@ -43,7 +43,6 @@ const WEATHER_ICON_MAP = {
 };
 
 function renderWeather(weatherData) {
-
     const weatherIcon = document.getElementById("weatherIcon");
     const weatherText = document.getElementById("weatherText");
     const weatherBox = document.getElementById("weatherBox");
@@ -54,7 +53,7 @@ function renderWeather(weatherData) {
 
     if (!current) {
         weatherIcon.textContent = "☁";
-        weatherText.textContent = "天气不可用";
+        weatherText.textContent = "天气信息暂不可用";
         return;
     }
 
@@ -68,25 +67,25 @@ function renderWeather(weatherData) {
     weatherText.textContent = `${temp}° ${text}`;
 
     weatherBox.style.cursor = "pointer";
-
     weatherBox.onclick = () => {
         window.open("https://www.msn.com/weather", "_blank");
     };
-
 }
 
-function renderWeatherError(message = "天气不可用") {
-
+function renderWeatherError(message = "天气信息暂不可用") {
     const weatherIcon = document.getElementById("weatherIcon");
     const weatherText = document.getElementById("weatherText");
+    const weatherBox = document.getElementById("weatherBox");
+
+    if (weatherBox) {
+        weatherBox.classList.remove("hidden");
+    }
 
     if (weatherIcon) weatherIcon.textContent = "☁";
     if (weatherText) weatherText.textContent = message;
-
 }
 
 async function fetchWeatherByCoords(latitude, longitude) {
-
     const url =
         `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
         `&current=temperature_2m,weather_code&timezone=auto`;
@@ -98,70 +97,47 @@ async function fetchWeatherByCoords(latitude, longitude) {
     }
 
     return await response.json();
-
 }
 
-function initWeather() {
-
+function initWeather(forceRequest = false) {
     try {
-
-        const settings =
-            JSON.parse(localStorage.getItem("settings") || "{}");
+        const settings = JSON.parse(localStorage.getItem("settings") || "{}");
 
         if (!settings.weather) return;
 
         if (!navigator.geolocation) {
-            renderWeatherError("设备不支持定位");
+            renderWeatherError("天气信息暂不可用");
             return;
         }
 
         navigator.geolocation.getCurrentPosition(
-
             async (position) => {
-
                 try {
-
                     const latitude = position.coords.latitude;
                     const longitude = position.coords.longitude;
 
-                    const weatherData =
-                        await fetchWeatherByCoords(latitude, longitude);
-
+                    const weatherData = await fetchWeatherByCoords(latitude, longitude);
                     renderWeather(weatherData);
-
                 } catch (error) {
-
                     console.error("天气请求失败：", error);
-                    renderWeatherError("天气不可用");
-
+                    renderWeatherError("天气信息暂不可用");
                 }
-
             },
-
             (error) => {
-
                 console.error("定位失败：", error);
-                renderWeatherError("请允许定位");
-
+                renderWeatherError("天气信息暂不可用");
             },
-
             {
                 enableHighAccuracy: false,
                 timeout: 8000,
-                maximumAge: 10 * 60 * 1000
+                maximumAge: forceRequest ? 0 : 10 * 60 * 1000
             }
-
         );
-
     } catch (error) {
-
         console.error("天气初始化失败：", error);
-        renderWeatherError("天气不可用");
-
+        renderWeatherError("天气信息暂不可用");
     }
-
 }
 
 window.initWeather = initWeather;
-
-window.addEventListener("load", initWeather);
+window.renderWeatherError = renderWeatherError;
