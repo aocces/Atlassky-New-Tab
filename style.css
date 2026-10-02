@@ -25,12 +25,21 @@
   --glass-panel: rgba(255, 255, 255, 0.62);        /* 面板   blur 12 */
   --glass-panel-strong: rgba(255, 255, 255, 0.82); /* 强面板 blur 16 */
   --glass-card: rgba(255, 255, 255, 0.5);          /* 卡片 */
-  --glass-field: rgba(255, 255, 255, 0.6);         /* 玻璃面板内的输入域 */
-  --glass-menu: rgba(255, 255, 255, 0.97);         /* 下拉菜单 */
+  /* 输入域。下拉浮层与它的触发器共用同一材质 —— 原先下拉单独一档 0.70，
+     比触发器的 0.6 淡，展开瞬间底色会跳一下，已合并到这一条。 */
+  --glass-field: rgba(255, 255, 255, 0.6);
+  --glass-menu: rgba(255, 255, 255, 0.78);         /* 搜索建议浮层（实时模糊）*/
+  --glass-menu-blur: 24px;                         /* 浮层模糊半径 */
+  --glass-menu-saturate: 180%;                     /* 糊过的底色不发灰 */
   --glass-modal: rgba(255, 255, 255, 0.95);        /* 弹窗 */
 
   --stroke-white: rgba(255, 255, 255, 0.72);
   --hairline: rgba(58, 53, 50, 0.1);
+
+  /* ---- 滑动条：全站唯一一套 ------------------------------------------ */
+  --scrollbar-size: 6px;
+  --scrollbar-thumb: rgba(58, 53, 50, 0.14);
+  --scrollbar-thumb-hover: rgba(58, 53, 50, 0.3);
 
   /* ---- 阴影：只用于浮层 ---------------------------------------------- */
   --shadow-overlay: 0 18px 36px rgba(58, 53, 50, 0.14);
@@ -70,6 +79,52 @@
   --theme-toast-border: rgba(255, 255, 255, 0.72);
   --theme-text-on-tint: #ffffff;
   --accent-transition: 0.5s;
+}
+
+/* ==========================================================================
+   滑动条 —— 全站唯一一套
+   搜索框 / 搜索建议 / 设置面板 / 下拉菜单此前各自写了一份散装规则
+   （4px、6px、8px 三种粗细，0.2 ~ 0.22 三种深浅），宽窄深浅都对不齐。
+   这里收敛成一处：细、圆、静止时低调，hover 加深给出反馈。
+   ========================================================================== */
+
+.search-box input,
+.suggest-list,
+.settings-body,
+.custom-select-list {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+:is(.search-box input,
+    .suggest-list,
+    .settings-body,
+    .custom-select-list)::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
+}
+
+:is(.search-box input,
+    .suggest-list,
+    .settings-body,
+    .custom-select-list)::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+:is(.search-box input,
+    .suggest-list,
+    .settings-body,
+    .custom-select-list)::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--radius-pill);
+  transition: background 0.24s ease;
+}
+
+:is(.search-box input,
+    .suggest-list,
+    .settings-body,
+    .custom-select-list)::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
 }
 
 html {
@@ -332,7 +387,6 @@ button {
   white-space: nowrap;
   overflow-x: auto;
   overflow-y: hidden;
-  scrollbar-width: thin;
 }
 
 .search-box input::placeholder {
@@ -342,19 +396,6 @@ button {
 
 .search-box input:focus::placeholder {
   opacity: 0;
-}
-
-.search-box input::-webkit-scrollbar {
-  height: 6px;
-}
-
-.search-box input::-webkit-scrollbar-thumb {
-  background: rgba(58, 53, 50, 0.22);
-  border-radius: var(--radius-pill);
-}
-
-.search-box input::-webkit-scrollbar-track {
-  background: transparent;
 }
 
 .search-btn {
@@ -389,11 +430,11 @@ button {
   z-index: 11;
   padding: 14px 14px 10px;
   border-radius: 32px;
-  background: rgba(255, 255, 255, 0.97);
+  background: var(--glass-menu);
   border: 1px solid var(--stroke-white);
   box-shadow: var(--shadow-overlay);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(var(--glass-menu-blur)) saturate(var(--glass-menu-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-menu-blur)) saturate(var(--glass-menu-saturate));
   opacity: 0;
   transform: translateY(-10px) scale(0.985) translateZ(0);
   pointer-events: none;
@@ -424,15 +465,6 @@ button {
   opacity: 1;
   transform: translateY(0);
   transition-delay: 0.06s;
-}
-
-.suggest-list::-webkit-scrollbar {
-  width: 8px;
-}
-
-.suggest-list::-webkit-scrollbar-thumb {
-  background: rgba(58, 53, 50, 0.22);
-  border-radius: var(--radius-pill);
 }
 
 .suggest-item-row {
@@ -792,34 +824,6 @@ button {
   overflow-x: hidden;
   padding-right: 2px;
   margin-right: -2px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(58, 53, 50, 0) transparent;
-}
-
-.settings-body::-webkit-scrollbar {
-  width: 4px;
-}
-
-.settings-body::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.settings-body::-webkit-scrollbar-thumb {
-  background: rgba(58, 53, 50, 0);
-  border-radius: var(--radius-pill);
-  transition: background 0.3s ease;
-}
-
-.settings-panel:hover .settings-body::-webkit-scrollbar-thumb {
-  background: rgba(58, 53, 50, 0.2);
-}
-
-.settings-panel:hover .settings-body::-webkit-scrollbar-thumb:hover {
-  background: rgba(58, 53, 50, 0.34);
-}
-
-.settings-panel:hover .settings-body {
-  scrollbar-color: rgba(58, 53, 50, 0.2) transparent;
 }
 
 .settings-title {
@@ -1029,10 +1033,11 @@ button {
   padding: 6px;
   border: 1px solid var(--stroke-white);
   border-radius: var(--radius-field);
-  background: var(--glass-menu);
+  /* 与触发器（设置选项）共用同一材质，展开时底色不再跳一档 */
+  background: var(--glass-field);
   box-shadow: var(--shadow-overlay);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(var(--glass-menu-blur)) saturate(var(--glass-menu-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-menu-blur)) saturate(var(--glass-menu-saturate));
   opacity: 0;
   transform: translateY(-6px);
   pointer-events: none;
@@ -1069,6 +1074,74 @@ button {
   background: rgba(39, 88, 216, 0.08);
   color: var(--accent);
   font-weight: 500;
+}
+
+/* ---- 检索型菜单（天气城市）------------------------------------------- */
+/* 40 个城市逐页翻太累：顶部钉一个检索框，下面才是可滚动的候选列表。
+   要点是「外框不滚、列表滚」，检索框才不会跟着滑走。 */
+
+.custom-select-menu.is-searchable {
+  max-height: 320px;
+  overflow: hidden;
+}
+
+.custom-select-search {
+  flex-shrink: 0;
+  padding: 2px 2px 8px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.custom-select-search-input {
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--ink);
+  font-size: 0.875rem;
+  outline: none;
+  transition: background 0.18s ease;
+}
+
+.custom-select-search-input::placeholder {
+  color: var(--ink-faint);
+}
+
+.custom-select-search-input:focus {
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.custom-select-list {
+  /* 没有这行 flex 子项不会收缩，列表会顶着外框长出去 */
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.custom-select-empty {
+  padding: 16px 0 12px;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--ink-faint);
+}
+
+/* 设置面板本身是滚动容器，会裁掉溢出内容；下方放不下时改成向上展开 */
+.custom-select.drop-up .custom-select-menu {
+  top: auto;
+  bottom: calc(100% + 8px);
+  transform: translateY(6px);
+}
+
+.custom-select.drop-up.open .custom-select-menu {
+  transform: translateY(0);
+}
+
+.custom-select + .setting-helper-text {
+  margin-top: 8px;
 }
 
 .ghost-action-btn {

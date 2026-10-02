@@ -60,7 +60,7 @@
 
     <div class="more-group">
       <a
-              href="https://github.com/aocces/Atlasssky-New-Tab"
+              href="https://github.com/aocces/Atlassky-New-Tab"
               target="_blank"
               rel="noopener noreferrer"
               class="github-entry-card"
@@ -75,7 +75,7 @@
 
     <div class="more-group">
       <a
-              href="https://github.com/aocces/Atlasssky-New-Tab/issues"
+              href="https://github.com/aocces/Atlassky-New-Tab/issues"
               target="_blank"
               rel="noopener noreferrer"
               class="more-link-row"
@@ -84,7 +84,7 @@
       </a>
 
       <a
-              href="https://github.com/aocces/Atlasssky-New-Tab/releases"
+              href="https://github.com/aocces/Atlassky-New-Tab/releases"
               target="_blank"
               rel="noopener noreferrer"
               class="more-link-row"
@@ -265,6 +265,44 @@
             <span class="slider"></span>
           </label>
         </div>
+      </div>
+
+      <div class="setting-group">
+        <label class="setting-label" for="weatherCitySelector">天气城市</label>
+        <div
+                id="weatherCitySelector"
+                class="custom-select"
+                tabindex="0"
+                role="button"
+                aria-haspopup="listbox"
+                aria-expanded="false"
+        >
+          <button class="custom-select-trigger" type="button">
+            <span class="custom-select-text">自动</span>
+            <span class="custom-select-arrow" aria-hidden="true"></span>
+          </button>
+          <!--
+            城市多，逐页翻太累：顶部给一个 12306 手感的检索框
+            （汉字 / 全拼 / 首字母都能命中），下面才是可滚动的候选列表。
+            候选由 script.js 依据 weather.js 的 WEATHER_CITIES 生成，HTML 只留壳。
+          -->
+          <div class="custom-select-menu is-searchable">
+            <div class="custom-select-search">
+              <input
+                      id="weatherCitySearch"
+                      class="custom-select-search-input"
+                      type="text"
+                      placeholder="城市 / 拼音 / 首字母，如 bj"
+                      autocomplete="off"
+                      spellcheck="false"
+                      aria-label="搜索城市"
+              >
+            </div>
+            <div id="weatherCityList" class="custom-select-list" role="listbox" aria-label="天气城市"></div>
+            <div id="weatherCityEmpty" class="custom-select-empty hidden" role="status">没有匹配的城市</div>
+          </div>
+        </div>
+        <div id="weatherCitySummary" class="setting-helper-text">未启用天气</div>
       </div>
 
       <!-- 隐私 -->

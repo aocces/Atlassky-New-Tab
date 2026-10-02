@@ -99,6 +99,11 @@ const privacyInfoBtn = document.getElementById("privacyInfoBtn");
 
 const bgSelector = document.getElementById("bgSelector");
 const engineSelector = document.getElementById("engineSelector");
+const weatherCitySelector = document.getElementById("weatherCitySelector");
+const weatherCitySummary = document.getElementById("weatherCitySummary");
+const weatherCitySearch = document.getElementById("weatherCitySearch");
+const weatherCityList = document.getElementById("weatherCityList");
+const weatherCityEmpty = document.getElementById("weatherCityEmpty");
 const toggleShortcuts = document.getElementById("toggleShortcuts");
 const toggleWallpaperAnim = document.getElementById("toggleWallpaperAnim");
 const toggleSuggestions = document.getElementById("toggleSuggestions");
@@ -211,6 +216,8 @@ let settings = load(STORAGE_SETTINGS, {
   shortcuts: true,
   wallpaperAnim: true,
   weather: false,
+  // 空字符串 = 自动（定位优先，拿不到时按系统时区推断）；否则是 WEATHER_CITIES 里的城市 id
+  weatherCity: "",
   suggestions: true,
   customEngine: {
     name: "",
@@ -402,6 +409,12 @@ function debounce(fn, delay = 180) {
 
 /* 自定义下拉 */
 
+/**
+ * 特殊菜单展开时的钩子（目前只有城市检索型用），
+ * 免得把天气那套逻辑写进下面的通用函数里。
+ */
+let onCustomSelectOpen = null;
+
 function getCustomEngineDisplayName() {
   return settings.customEngine?.name?.trim() || "自定义";
 }
@@ -441,11 +454,53 @@ function closeCustomSelect(selectRoot) {
 }
 
 function closeAllCustomSelects(except) {
-  [bgSelector, engineSelector].forEach((selectRoot) => {
+  [bgSelector, engineSelector, weatherCitySelector].forEach((selectRoot) => {
     if (selectRoot && selectRoot !== except) {
       closeCustomSelect(selectRoot);
     }
   });
+}
+
+/** 菜单能压到的最小高度：再挤也要露出检索框 + 几个候选，否则不如不展开 */
+const CUSTOM_SELECT_MIN_HEIGHT = 180;
+
+/**
+ * 高菜单（城市检索型，最高 320px）默认向下展开，但设置面板本身是个滚动容器、
+ * 会把超出可视区的部分裁掉，所以空间不够时改成向上展开。
+ */
+function positionCustomSelectMenu(selectRoot) {
+  if (!selectRoot) return;
+
+  const menu = selectRoot.querySelector(".custom-select-menu");
+  const scroller = selectRoot.closest(".settings-body");
+  const trigger = selectRoot.querySelector(".custom-select-trigger");
+
+  selectRoot.classList.remove("drop-up");
+
+  if (!menu || !scroller || !trigger) return;
+  if (!menu.classList.contains("is-searchable")) return;
+
+  // 先清掉上一次算出的限制，这时量到的才是自然高度
+  menu.style.maxHeight = "";
+
+  const boundary = scroller.getBoundingClientRect();
+  const triggerRect = trigger.getBoundingClientRect();
+  const naturalHeight = menu.offsetHeight;
+
+  const spaceBelow = boundary.bottom - triggerRect.bottom - 8;
+  const spaceAbove = triggerRect.top - boundary.top - 8;
+
+  const dropUp = naturalHeight > spaceBelow && spaceAbove > spaceBelow;
+  if (dropUp) selectRoot.classList.add("drop-up");
+
+  // 光翻转还不够：设置面板可视区就这么高，触发器落在中间时两边都放不下，
+  // 超出的部分会被 .settings-body 直接裁掉（实测能裁掉 85px，近四分之一）。
+  // 这里把菜单压到可用高度，让滚动发生在菜单内部，而不是让选项凭空消失。
+  const available = Math.max(dropUp ? spaceAbove : spaceBelow, CUSTOM_SELECT_MIN_HEIGHT);
+
+  if (naturalHeight > available) {
+    menu.style.maxHeight = Math.round(available) + "px";
+  }
 }
 
 function openCustomSelect(selectRoot) {
@@ -453,6 +508,8 @@ function openCustomSelect(selectRoot) {
   closeAllCustomSelects(selectRoot);
   selectRoot.classList.add("open");
   selectRoot.setAttribute("aria-expanded", "true");
+  positionCustomSelectMenu(selectRoot);
+  if (typeof onCustomSelectOpen === "function") onCustomSelectOpen(selectRoot);
 }
 
 function toggleCustomSelect(selectRoot) {
@@ -469,7 +526,6 @@ function setupCustomSelect(selectRoot, onChange) {
   if (!selectRoot) return;
 
   const trigger = selectRoot.querySelector(".custom-select-trigger");
-  const options = selectRoot.querySelectorAll(".custom-select-option");
 
   if (trigger) {
     trigger.addEventListener("click", (event) => {
@@ -478,19 +534,26 @@ function setupCustomSelect(selectRoot, onChange) {
     });
   }
 
-  options.forEach((option) => {
-    option.addEventListener("click", (event) => {
-      event.stopPropagation();
-      const value = option.dataset.value;
-      syncCustomSelect(selectRoot, value);
-      closeCustomSelect(selectRoot);
-      if (typeof onChange === "function") {
-        onChange(value);
-      }
-    });
+  // 用事件委托而不是逐个绑定：城市候选会随检索词整批重建，
+  // 逐个 bind 的监听器会跟着旧节点一起被丢掉。
+  selectRoot.addEventListener("click", (event) => {
+    const option = event.target.closest ? event.target.closest(".custom-select-option") : null;
+    if (!option || !selectRoot.contains(option)) return;
+
+    event.stopPropagation();
+    const value = option.dataset.value;
+    syncCustomSelect(selectRoot, value);
+    closeCustomSelect(selectRoot);
+    if (typeof onChange === "function") {
+      onChange(value);
+    }
   });
 
   selectRoot.addEventListener("keydown", (event) => {
+    // 菜单顶部的检索框自己处理按键（回车选第一条、Esc 清空），
+    // 不参与下面这套「回车 / 空格开关菜单」
+    if (event.target.closest && event.target.closest(".custom-select-search")) return;
+
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       toggleCustomSelect(selectRoot);
@@ -640,6 +703,98 @@ function renderWeatherUnavailable(message = "天气信息暂不可用") {
   weatherText.textContent = message;
 }
 
+const WEATHER_CITY_AUTO_LABEL = "自动（定位优先）";
+
+/** 城市 id → 显示名；空值代表「自动」。 */
+function getWeatherCityLabel(value) {
+  if (!value) return WEATHER_CITY_AUTO_LABEL;
+  const city = (window.WEATHER_CITIES || []).find((item) => item.id === value);
+  return city ? city.name : WEATHER_CITY_AUTO_LABEL;
+}
+
+function createWeatherCityOption(value, label) {
+  const option = document.createElement("button");
+  option.type = "button";
+  option.className = "custom-select-option";
+  option.dataset.value = value;
+  option.textContent = label;
+
+  const active = (settings.weatherCity || "auto") === value;
+  option.classList.toggle("active", active);
+  option.setAttribute("aria-selected", active ? "true" : "false");
+
+  return option;
+}
+
+/**
+ * 渲染城市候选。清单只维护在 weather.js 一处，这里只负责按检索词过滤。
+ * 检索为空时把「自动（定位优先）」放在首位；一旦开始检索就只留城市，
+ * 免得这个固定项挤占本来就不多的结果。
+ */
+function renderWeatherCityList(query = "") {
+  if (!weatherCityList) return;
+
+  const matcher = window.matchWeatherCities;
+  const cities = typeof matcher === "function"
+          ? matcher(query)
+          : (window.WEATHER_CITIES || []).slice();
+
+  const fragment = document.createDocumentFragment();
+
+  if (!String(query || "").trim()) {
+    fragment.appendChild(createWeatherCityOption("auto", WEATHER_CITY_AUTO_LABEL));
+  }
+
+  cities.forEach((city) => {
+    fragment.appendChild(createWeatherCityOption(city.id, city.name));
+  });
+
+  weatherCityList.textContent = "";
+  weatherCityList.appendChild(fragment);
+
+  if (weatherCityEmpty) {
+    weatherCityEmpty.classList.toggle("hidden", cities.length > 0);
+  }
+
+  // 过滤后触发器上原来那个选项可能已经不在列表里了，
+  // 这里按设置值直接回写标签，保证触发器始终显示当前选择。
+  const textNode = weatherCitySelector?.querySelector(".custom-select-text");
+  if (textNode) textNode.textContent = getWeatherCityLabel(settings.weatherCity);
+}
+
+/** 收起后复原检索状态，下次展开仍是完整清单。 */
+function resetWeatherCitySearch() {
+  if (weatherCitySearch) weatherCitySearch.value = "";
+  renderWeatherCityList("");
+}
+
+/** 告诉用户「现在显示的是哪儿的天气、为什么是这儿」——兜底城市必须让人看得见。 */
+function renderWeatherCitySummary() {
+  if (!weatherCitySummary) return;
+
+  if (!settings.weather) {
+    weatherCitySummary.textContent = "未启用天气";
+    return;
+  }
+
+  if (settings.weatherCity) {
+    const city = (window.WEATHER_CITIES || []).find((item) => item.id === settings.weatherCity);
+    weatherCitySummary.textContent = city ? `固定使用 ${city.name}，不使用定位` : "未启用天气";
+    return;
+  }
+
+  const source = weatherBox?.dataset.citySource;
+  const cityName = weatherBox?.dataset.city;
+
+  if (source === "geo") {
+    weatherCitySummary.textContent = "当前：定位位置";
+  } else if (source === "timezone" && cityName) {
+    weatherCitySummary.textContent = `当前：${cityName}（按系统时区推断，可手动指定）`;
+  } else {
+    weatherCitySummary.textContent = "定位优先；拿不到定位时按系统时区推断";
+  }
+}
+
 function handleWeatherPermissionApproved() {
   setWeatherPermissionStatus("granted");
   settings.weather = true;
@@ -659,10 +814,22 @@ function handleWeatherPermissionDenied() {
 
 function handleWeatherPermissionRevoked() {
   setWeatherPermissionStatus("unknown");
-  settings.weather = false;
+
+  // 手动指定城市时不依赖定位，撤回授权不该顺手把天气一起关掉
+  if (!settings.weatherCity) {
+    settings.weather = false;
+  }
+
   persistSettings();
   applySettings();
   closeWeatherRevokeModal();
+
+  if (settings.weather) {
+    refreshWeatherView(true);
+    showToast("天气定位授权已撤回，继续按所选城市显示");
+    return;
+  }
+
   showToast("天气定位授权已撤回");
 }
 
@@ -674,6 +841,7 @@ function applySettings() {
 
   syncCustomSelect(bgSelector, settings.bg);
   syncCustomSelect(engineSelector, settings.engine);
+  syncCustomSelect(weatherCitySelector, settings.weatherCity || "auto");
 
   if (toggleShortcuts) toggleShortcuts.checked = settings.shortcuts;
 
@@ -710,6 +878,7 @@ function applySettings() {
   }
 
   renderCustomEngineSummary();
+  renderWeatherCitySummary();
 }
 
 function persistSettings() {
@@ -1209,7 +1378,8 @@ function refreshWeatherView(forceRequest = false) {
 
   if (!settings.weather) return;
 
-  if (getWeatherPermissionStatus() !== "granted") {
+  // 手动指定城市时压根不用定位，自然也不需要定位授权
+  if (!settings.weatherCity && getWeatherPermissionStatus() !== "granted") {
     settings.weather = false;
     persistSettings();
     applySettings();
@@ -1221,14 +1391,60 @@ function refreshWeatherView(forceRequest = false) {
   } else if (weatherText) {
     weatherText.textContent = "天气加载中...";
   }
+
+  renderWeatherCitySummary();
 }
 
 /* 绑定事件 */
+
+renderWeatherCityList("");
+
+// 城市菜单是检索型的：展开即清空上次的检索词，并把光标交给检索框
+onCustomSelectOpen = (selectRoot) => {
+  if (selectRoot !== weatherCitySelector) return;
+  resetWeatherCitySearch();
+  if (weatherCitySearch) {
+    window.setTimeout(() => weatherCitySearch.focus({ preventScroll: true }), 0);
+  }
+};
+
+if (weatherCitySearch) {
+  weatherCitySearch.addEventListener("input", () => {
+    renderWeatherCityList(weatherCitySearch.value);
+  });
+
+  weatherCitySearch.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      // 交给检索框自己处理：先清空，再关菜单
+      event.stopPropagation();
+      if (weatherCitySearch.value) {
+        weatherCitySearch.value = "";
+        renderWeatherCityList("");
+      } else {
+        closeCustomSelect(weatherCitySelector);
+      }
+      return;
+    }
+
+    // 回车直接选中第一条候选，12306 也是这个手感
+    if (event.key === "Enter") {
+      event.preventDefault();
+      weatherCityList?.querySelector(".custom-select-option")?.click();
+    }
+  });
+}
 
 setupCustomSelect(bgSelector, (value) => {
   settings.bg = value;
   persistSettings();
   applySettings();
+});
+
+setupCustomSelect(weatherCitySelector, (value) => {
+  settings.weatherCity = value === "auto" ? "" : value;
+  persistSettings();
+  applySettings();
+  refreshWeatherView(true);
 });
 
 setupCustomSelect(engineSelector, (value) => {
@@ -1240,6 +1456,19 @@ setupCustomSelect(engineSelector, (value) => {
     updateSuggestPanel();
   }
 });
+
+// 面板一滚动，菜单就偏离了原来算好的位置，重算一次，
+// 免得它被裁在半路（下拉是 absolute 定位，不跟着滚动走）
+{
+  const scroller = settingsPanel?.querySelector(".settings-body");
+  if (scroller) {
+    scroller.addEventListener("scroll", () => {
+      const opened = [bgSelector, engineSelector, weatherCitySelector]
+              .find((selectRoot) => selectRoot?.classList.contains("open"));
+      if (opened) positionCustomSelectMenu(opened);
+    }, { passive: true });
+  }
+}
 
 if (toggleSuggestions) {
   toggleSuggestions.addEventListener("change", () => {
@@ -1278,7 +1507,8 @@ if (toggleWeather) {
       return;
     }
 
-    if (getWeatherPermissionStatus() === "granted") {
+    // 已手动指定城市时不需要定位授权，直接开
+    if (settings.weatherCity || getWeatherPermissionStatus() === "granted") {
       settings.weather = true;
       persistSettings();
       applySettings();
@@ -1330,6 +1560,11 @@ if (cancelWeatherRevokeBtn) {
     closeWeatherRevokeModal();
   });
 }
+
+// weather.js 取到数据（或改用了兜底城市）后回调，刷新设置面板里的说明文字
+window.addEventListener("weatherresolved", () => {
+  renderWeatherCitySummary();
+});
 
 if (closeWeatherRevokeBtn) {
   closeWeatherRevokeBtn.addEventListener("click", () => {
@@ -1509,7 +1744,13 @@ document.addEventListener("click", (event) => {
   const clickedOnSettingsBtn =
       settingsBtn && settingsBtn.contains(event.target);
 
-  if (!clickedInsideSettings && !clickedOnSettingsBtn) {
+  // 天气授权 / 撤回弹窗是从设置面板里点出来的，属于同一条流程，
+  // 不该顺手把面板关掉 —— 否则「开天气 → 同意 → 设城市」会被打断。
+  const clickedInsideWeatherModal =
+      (weatherPermissionOverlay && weatherPermissionOverlay.contains(event.target)) ||
+      (weatherRevokeOverlay && weatherRevokeOverlay.contains(event.target));
+
+  if (!clickedInsideSettings && !clickedOnSettingsBtn && !clickedInsideWeatherModal) {
     closeSettingsPanel();
   }
 
@@ -1524,7 +1765,8 @@ document.addEventListener("click", (event) => {
 
   const clickedInsideCustomSelect =
       (bgSelector && bgSelector.contains(event.target)) ||
-      (engineSelector && engineSelector.contains(event.target));
+      (engineSelector && engineSelector.contains(event.target)) ||
+      (weatherCitySelector && weatherCitySelector.contains(event.target));
 
   if (!clickedInsideCustomSelect) {
     closeAllCustomSelects();
