@@ -1,6 +1,6 @@
 # Soft New Tab Pro
 
-极简风格的浏览器新标签页扩展（Chrome MV3）。当前版本 **3.2.0**。
+极简风格的浏览器新标签页扩展（Chrome MV3）。
 
 > 前身名为 *Soft New Tab*，现名 *Soft New Tab Pro*。
 > 版本变更见 [CHANGELOG.md](CHANGELOG.md)。
