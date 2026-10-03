@@ -1,5 +1,5 @@
 /* ==========================================================================
-   flower new tab · 3.2.0
+   flower new tab · 2.3.0
    视觉层按《Atlassky New Tab · 融合设计稿》第 11 屏规范重写。
    - 极光与玻璃材质保留，色彩收敛为单一强调色 #2758D8
    - 阴影只用于浮层（抽屉 / 弹窗 / 下拉），全部中性灰
@@ -1544,38 +1544,9 @@ body.has-custom-wallpaper #auroraCanvas {
   word-break: break-word;
 }
 
-/* ---- 品牌区块（更多面板底部）------------------------------------------ */
-/* 图标与 manifest 的 icons 用同一份 assets/icons，不会各画各的 */
-.more-identity {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding-top: 14px;
-  border-top: 1px solid var(--hairline);
-}
-
-.app-logo {
-  display: block;
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  margin-bottom: 4px;
-}
-
-.app-name {
-  font-family: var(--font-body);
-  font-size: 0.8125rem;
-  color: var(--ink);
-  letter-spacing: 0.01em;
-}
-
-/* 品牌区是居中的，版本号与版权那两行也要跟着居中，且去掉原来的左右内缩 */
-.more-identity .more-meta-row,
-.more-identity .more-copyright {
-  padding: 0;
-  text-align: center;
-}
+/* ---- 品牌图标 -------------------------------------------------------- */
+/* 图标不进「更多」面板（那是关于与链接，不是品牌位）。
+   源文件 assets/logo.svg，产物在 assets/icons/，manifest 的 icons 指向后者。 */
 
 /* ---- 品牌字标 -------------------------------------------------------- */
 /* 贴在主界面左下角、紧贴左下底边。不加玻璃底、不加描边，与页脚一样裸在极光上。

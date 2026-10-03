@@ -1,6 +1,6 @@
 # flower new tab
 
-极简风格的浏览器新标签页扩展（Chrome MV3）。当前版本 **3.2.0**。
+极简风格的浏览器新标签页扩展（Chrome MV3）。当前版本 **2.3.0**。
 
 > 前身名为 *Soft New Tab* → *Soft New Tab Pro*，2026-10-03 起更名为 **flower new tab**。
 > 版本变更见 [CHANGELOG.md](CHANGELOG.md)。
@@ -78,8 +78,6 @@
 - 这是**网络可达性**问题，不是跨域（CORS）问题。扩展页面与 Service Worker 对 `host_permissions` 内站点发请求本就豁免同源策略，因此既不需要 Service Worker 也不需要代理——把域名写进 `manifest.json` 的 `host_permissions` 即可。
 - 若某家引擎取不到建议，浮层会给出「改用 Bing」与「重试」按钮，并区分「网络不通 / 网络超时 / 接口异常」。
 
-> 仓库根目录的 `proxy.txt` 与 `自建搜索建议搭建指南.txt` 是早期版本使用 Cloudflare Workers 代理方案时的产物，
-> **该方案已于 3.2.0 移除**，两份文件仅作历史存档，请勿再按其中内容部署。
 
 ## 字体
 
