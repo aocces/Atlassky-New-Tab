@@ -17,6 +17,13 @@
 <body data-bg="gradient">
 <!-- 灵光动效壁纸画布（置于最底层） -->
 <canvas id="auroraCanvas" aria-hidden="true"></canvas>
+
+<!--
+  自定义壁纸图层。默认 empty（src 为空即不渲染任何东西），
+  只有 settings.bg === "custom" 且本地存有图时才显示 —— 纯位图，替代极光。
+  图片以 data URL 形式存在 chrome.storage.local，**不会上传到任何服务器**。
+-->
+<img id="customWallpaper" class="custom-wallpaper" alt="" aria-hidden="true">
 <div class="page">
 
   <!-- 顶部角标控件 · 裸露无底（设计规范：不加玻璃底与描边） -->
@@ -152,6 +159,35 @@
 
   </main>
 
+  <!--
+    品牌字标：贴在主界面左下角、紧贴左下底边。
+    源文件是 VTracer 描摹出来的 SVG —— 数千条 path 各带一个近黑 fill（肉眼分辨不出的
+    描摹伪影）。已由 .workbuddy/optimize_svg.js 合并成一条 path、统一 fill、补 viewBox，
+    再由 .workbuddy/trim_svg.js 把 viewBox 裁到真实墨迹范围（原图下留白 175/724、
+    右留白 535/2172 —— 不裁的话「盒子贴边」不等于「墨迹贴边」，且内容白白小 33%）。
+    width/height 写 intrinsic 尺寸，CSS 只缩不拉。
+  -->
+  <img
+          class="wordmark"
+          src="assets/wordmark.svg"
+          alt="flowerdesign"
+          width="1637"
+          height="549"
+          draggable="false"
+  >
+
+  <!--
+    一言 —— 常驻页脚，点一下换一句。
+    整条 bar 不吃点击（pointer-events: none），只有文字那块可点，
+    免得压到下面的快捷入口。接口拿不到时整块隐藏，不留空位。
+  -->
+  <footer id="hitokotoBar" class="hitokoto-bar" hidden aria-live="polite">
+    <button id="hitokotoBtn" class="hitokoto-btn" type="button" title="换一句">
+      <span id="hitokotoText" class="hitokoto-text"></span>
+      <span id="hitokotoSource" class="hitokoto-source" hidden></span>
+    </button>
+  </footer>
+
   <!-- 设置面板 -->
   <aside id="settingsPanel" class="settings-panel" aria-label="设置面板">
     <div class="settings-title">设置</div>
@@ -180,6 +216,33 @@
             <button class="custom-select-option" type="button" data-value="cool">静谧灰调</button>
             <button class="custom-select-option" type="button" data-value="image1">暮色绯雾</button>
             <button class="custom-select-option" type="button" data-value="image2">云岚青影</button>
+            <button class="custom-select-option" type="button" data-value="custom">自定义壁纸</button>
+          </div>
+        </div>
+
+        <!--
+          自定义壁纸的选图区：只有切到「自定义壁纸」时才出现。
+          图片走 canvas 压缩后存进 chrome.storage.local，**只在这台电脑上**。
+        -->
+        <div id="wallpaperPicker" class="wallpaper-picker hidden">
+          <div class="wallpaper-preview-row">
+            <div id="wallpaperThumb" class="wallpaper-thumb" aria-hidden="true">
+              <span class="wallpaper-thumb-empty">尚未选择图片</span>
+            </div>
+            <div class="wallpaper-actions">
+              <button id="chooseWallpaperBtn" class="ghost-action-btn" type="button">选择图片</button>
+              <button id="clearWallpaperBtn" class="ghost-action-btn" type="button" disabled>移除</button>
+            </div>
+          </div>
+          <!-- accept 限死图片类型；图片本身不落盘到磁盘，只进浏览器本地存储 -->
+          <input
+                  id="wallpaperFile"
+                  class="visually-hidden"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif,image/bmp"
+          >
+          <div class="setting-helper-text">
+            图片会压缩后存在这台电脑的浏览器里，<strong>不会上传到任何服务器</strong>。
           </div>
         </div>
       </div>
@@ -189,6 +252,26 @@
           <span class="setting-label-inline">壁纸动态效果</span>
           <label class="switch">
             <input id="toggleWallpaperAnim" type="checkbox" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <div class="setting-row">
+          <span class="setting-label-inline">显示一言</span>
+          <label class="switch">
+            <input id="toggleHitokoto" type="checkbox" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <div class="setting-row">
+          <span class="setting-label-inline">显示品牌标识</span>
+          <label class="switch">
+            <input id="toggleWordmark" type="checkbox" checked>
             <span class="slider"></span>
           </label>
         </div>
@@ -492,6 +575,8 @@
 
 <script src="aurora.js"></script>
 <script src="weather.js"></script>
+<script src="hitokoto.js"></script>
+<script src="wallpaper.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

@@ -25,8 +25,9 @@
   --glass-panel: rgba(255, 255, 255, 0.62);        /* 面板   blur 12 */
   --glass-panel-strong: rgba(255, 255, 255, 0.82); /* 强面板 blur 16 */
   --glass-card: rgba(255, 255, 255, 0.5);          /* 卡片 */
-  /* 输入域。下拉浮层与它的触发器共用同一材质 —— 原先下拉单独一档 0.70，
-     比触发器的 0.6 淡，展开瞬间底色会跳一下，已合并到这一条。 */
+  /* 输入域（含设置里的下拉触发器）。
+     下拉浮层原先也走这一条，2026-10-02 用户改口要求「与设置面板一样的材质和颜色」，
+     已整块移交 --glass-panel-strong；这里不再管浮层。 */
   --glass-field: rgba(255, 255, 255, 0.6);
   --glass-menu: rgba(255, 255, 255, 0.78);         /* 搜索建议浮层（实时模糊）*/
   --glass-menu-blur: 24px;                         /* 浮层模糊半径 */
@@ -37,9 +38,11 @@
   --hairline: rgba(58, 53, 50, 0.1);
 
   /* ---- 滑动条：全站唯一一套 ------------------------------------------ */
+  /* 静止时是全透明的，这两个值只在「滚动中」或「鼠标悬停」时才被用上，
+     所以比原先常驻的那档深一点，否则现身时淡得抓不住。 */
   --scrollbar-size: 6px;
-  --scrollbar-thumb: rgba(58, 53, 50, 0.14);
-  --scrollbar-thumb-hover: rgba(58, 53, 50, 0.3);
+  --scrollbar-thumb: rgba(58, 53, 50, 0.22);
+  --scrollbar-thumb-hover: rgba(58, 53, 50, 0.34);
 
   /* ---- 阴影：只用于浮层 ---------------------------------------------- */
   --shadow-overlay: 0 18px 36px rgba(58, 53, 50, 0.14);
@@ -57,6 +60,13 @@
 
   /* ---- 栅格 ---------------------------------------------------------- */
   --grid: 860px;
+
+  /* 品牌字标的显示宽度。一处定义，页脚据此让位 —— 改它就同时改了
+     「字标多大」和「页脚从哪儿开始」，两者永远不会撞上。
+     420px 那档是「fl 笔画刚能分开」的临界点（fl 区 92px）；
+     用户看过实拍后选择 105px 的极小尺寸，当作纯粹的角落装饰 ——
+     这个尺寸下字母已不可读（fl 区仅 23px），要读字请调回 240px 以上。 */
+  --wordmark-w: 105px;
 
   /* ---- 字体族 -------------------------------------------------------- */
   /* 前五款为内置自托管字体（fonts/fonts.css，离线可用）；
@@ -85,7 +95,9 @@
    滑动条 —— 全站唯一一套
    搜索框 / 搜索建议 / 设置面板 / 下拉菜单此前各自写了一份散装规则
    （4px、6px、8px 三种粗细，0.2 ~ 0.22 三种深浅），宽窄深浅都对不齐。
-   这里收敛成一处：细、圆、静止时低调，hover 加深给出反馈。
+   这里收敛成一处：细、圆，**静止时完全隐藏**，滚动或悬停才现身。
+   「正在滚」这件事 CSS 单独判断不了，由 script.js 给滚动的元素挂一个
+   .is-scrolling 标记，停手后摘掉。
    ========================================================================== */
 
 .search-box input,
@@ -93,6 +105,18 @@
 .settings-body,
 .custom-select-list {
   scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+/* 现身条件：鼠标在容器上，或正在滚动。两者都不满足就是全透明。 */
+.search-box input:hover,
+.suggest-list:hover,
+.settings-body:hover,
+.custom-select-list:hover,
+.search-box input.is-scrolling,
+.suggest-list.is-scrolling,
+.settings-body.is-scrolling,
+.custom-select-list.is-scrolling {
   scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
@@ -111,19 +135,35 @@
   background: transparent;
 }
 
+/* 显隐是瞬时的：滚动条伪元素上的 transition 在 Chrome 上不保证生效，
+   写上去也只是看着像在动，不如省掉。 */
 :is(.search-box input,
     .suggest-list,
     .settings-body,
     .custom-select-list)::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
+  background: transparent;
   border-radius: var(--radius-pill);
-  transition: background 0.24s ease;
 }
 
 :is(.search-box input,
     .suggest-list,
     .settings-body,
-    .custom-select-list)::-webkit-scrollbar-thumb:hover {
+    .custom-select-list):hover::-webkit-scrollbar-thumb,
+:is(.search-box input,
+    .suggest-list,
+    .settings-body,
+    .custom-select-list).is-scrolling::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+}
+
+:is(.search-box input,
+    .suggest-list,
+    .settings-body,
+    .custom-select-list):hover::-webkit-scrollbar-thumb:hover,
+:is(.search-box input,
+    .suggest-list,
+    .settings-body,
+    .custom-select-list).is-scrolling::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover);
 }
 
@@ -969,6 +1009,13 @@ button {
   position: relative;
   width: 100%;
   outline: none;
+  /* 浮层收起时偏移的方向：默认向下展开，往上飘一点淡入。
+     向上展开（drop-up）时由下面那条规则翻成 6px，从上方落下来。 */
+  --menu-shift: -6px;
+}
+
+.custom-select.drop-up {
+  --menu-shift: 6px;
 }
 
 .custom-select-trigger {
@@ -1033,21 +1080,34 @@ button {
   padding: 6px;
   border: 1px solid var(--stroke-white);
   border-radius: var(--radius-field);
-  /* 与触发器（设置选项）共用同一材质，展开时底色不再跳一档 */
-  background: var(--glass-field);
+  /* 与设置面板本体同档（用户 2026-10-02 定稿）。比上一行的字段白一档，
+     展开时会有一次色阶变化 —— 这是「压住背后文字」换来的，看样张后已知并接受。
+     走同一个 token，将来面板调色时下拉自动跟随，不必再对齐一次。 */
+  background: var(--glass-panel-strong);
   box-shadow: var(--shadow-overlay);
   backdrop-filter: blur(var(--glass-menu-blur)) saturate(var(--glass-menu-saturate));
   -webkit-backdrop-filter: blur(var(--glass-menu-blur)) saturate(var(--glass-menu-saturate));
+  /* 收起时必须 display:none。
+     绝对定位的盒子只要还在渲染树里，就会计入祖先滚动容器的「可滚动溢出区」——
+     城市浮层收着时仍伸到它那一组下面约 290px，把设置面板的可滚动高度从 701px
+     凭空顶到 907px，于是滚到底是一片 205px 的空白。
+     展开改用 animation 淡入：display 从 none 切回 flex 的那一帧 transition
+     不会触发，只有 animation 能给出 from 状态。收起就干脆直接消失，不做淡出。 */
+  display: none;
   opacity: 0;
-  transform: translateY(-6px);
+  transform: translateY(var(--menu-shift));
   pointer-events: none;
-  transition: opacity 0.18s ease, transform 0.18s ease;
 }
 
 .custom-select.open .custom-select-menu {
-  opacity: 1;
-  transform: translateY(0);
+  display: flex;
   pointer-events: auto;
+  animation: custom-select-in 0.18s ease both;
+}
+
+@keyframes custom-select-in {
+  from { opacity: 0; transform: translateY(var(--menu-shift, -6px)); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .custom-select-option {
@@ -1133,11 +1193,6 @@ button {
 .custom-select.drop-up .custom-select-menu {
   top: auto;
   bottom: calc(100% + 8px);
-  transform: translateY(6px);
-}
-
-.custom-select.drop-up.open .custom-select-menu {
-  transform: translateY(0);
 }
 
 .custom-select + .setting-helper-text {
@@ -1158,6 +1213,176 @@ button {
 
 .ghost-action-btn:hover {
   background: rgba(255, 255, 255, 0.62);
+}
+
+.ghost-action-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ghost-action-btn:disabled:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* 视觉上藏起来但仍可被程序触发（file input 必须真在 DOM 里才能点） */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---- 自定义壁纸 ------------------------------------------------------- */
+
+/* 位图图层铺在最底层，与极光画布同层。src 为空时不渲染任何东西，
+   所以默认状态零开销。 */
+.custom-wallpaper {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  display: none;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* 「显示品牌标识」关掉时不渲染。显隐由 script.js 按设置加类 —— 应用启动时
+   applySettings 不会被调用（它一直是用户改动时才调），所以那一处在 script.js 里显式落一次。 */
+body.has-wordmark .wordmark {
+  display: block;
+}
+
+/* 图层显隐挂在「图真的存好了」这个状态上，而不是 data-bg="custom"。
+   否则用户切到自定义壁纸、还没选图的那一瞬间，背景就是一块空白 ——
+   那是这个功能能出现的最糟状态。
+   data-bg 这时仍然保持上一个极光主题（由 script.js 负责），背景不会莫名变样。 */
+body.has-custom-wallpaper .custom-wallpaper {
+  display: block;
+}
+
+/* ==========================================================================
+   深色壁纸变体
+   界面文字（墨 #3a3532）与白玻璃底色都是为浅色极光调的。铺深色壁纸时实测：
+     墨字直接压在深图上只有 **1.48:1**；加一层白色径向蒙版也只到 **1.73:1** ——
+     要让墨字达到 AA 的 4.5:1，底色得接近纯白（rgb 210+），那会很难看。
+   所以真正的解法是整套翻成暗色：只翻转**文字与玻璃两类 token**，
+   圆角 / 间距 / 字号 / 动效一律不动。
+   触发：wallpaper.js 测壁纸平均亮度后加 body.dark-wallpaper（阈值见 WALLPAPER_DARK_LUMA）。
+   ========================================================================== */
+
+body.dark-wallpaper {
+  /* 文字反过来用浅色 */
+  --ink: #f2ede8;
+  --ink-soft: rgba(242, 237, 232, 0.78);
+  --ink-faint: rgba(242, 237, 232, 0.56);
+
+  /* 强调色 / 危险色：原来的深蓝深红在深底上偏暗，各提一档 */
+  --accent: #7aa2f7;
+  --accent-strong: #a8c1fa;
+  --danger: #e57373;
+
+  /* 白玻璃 → 深玻璃 */
+  --glass-panel: rgba(20, 18, 26, 0.58);
+  --glass-panel-strong: rgba(18, 16, 24, 0.72);
+  --glass-card: rgba(255, 255, 255, 0.07);
+  --glass-field: rgba(255, 255, 255, 0.12);
+  --glass-menu: rgba(18, 16, 24, 0.76);
+  --glass-modal: rgba(16, 14, 22, 0.9);
+
+  --stroke-white: rgba(255, 255, 255, 0.18);
+  --hairline: rgba(255, 255, 255, 0.12);
+
+  /* 深底上阴影要更深才看得出层次 */
+  --shadow-overlay: 0 18px 36px rgba(0, 0, 0, 0.5);
+  --shadow-overlay-lg: 0 24px 60px rgba(0, 0, 0, 0.6);
+  --shadow-float: 0 14px 34px rgba(0, 0, 0, 0.42);
+  --shadow-focus: 0 18px 40px rgba(0, 0, 0, 0.5);
+
+  /* 滑动条：深底上要浅色才看得见 */
+  --scrollbar-thumb: rgba(242, 237, 232, 0.24);
+  --scrollbar-thumb-hover: rgba(242, 237, 232, 0.38);
+
+  /* 品牌字标是纯黑墨字，深底上会看不见 —— 反相成白再压一档透明度。
+     SVG 根节点上的 fill 写死了 #000000，CSS 改不了，filter 是最省事的做法。 */
+  --wordmark-filter: invert(1);
+  --wordmark-opacity: 0.45;
+}
+
+body.dark-wallpaper .wordmark {
+  filter: var(--wordmark-filter);
+  opacity: var(--wordmark-opacity);
+}
+
+/* 自定义壁纸是不动的位图，极光画布整个停掉 —— 既省 CPU，也避免两层背景叠着发灰 */
+body.has-custom-wallpaper #auroraCanvas {
+  display: none;
+}
+
+.wallpaper-picker {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-field);
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.wallpaper-preview-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 缩略图用 16:10 裁切，和壁纸层的 object-fit: cover 观感一致，
+   免得「预览是长条、铺上去是方块」这种预期落差 */
+.wallpaper-thumb {
+  position: relative;
+  flex-shrink: 0;
+  width: 96px;
+  height: 60px;
+  border-radius: 10px;
+  border: 1px solid var(--stroke-white);
+  background: rgba(255, 255, 255, 0.34) center / cover no-repeat;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wallpaper-thumb-empty {
+  font-size: 0.625rem;
+  color: var(--ink-faint);
+  text-align: center;
+  line-height: 1.3;
+  padding: 0 4px;
+}
+
+/* 有图了就把「尚未选择图片」这行字收掉 */
+.wallpaper-thumb.has-image .wallpaper-thumb-empty {
+  display: none;
+}
+
+.wallpaper-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.wallpaper-picker .setting-helper-text {
+  margin-top: 10px;
+}
+
+.wallpaper-picker .setting-helper-text strong {
+  font-weight: 600;
+  color: var(--ink);
 }
 
 /* ---- 危险行 ---------------------------------------------------------- */
@@ -1317,6 +1542,100 @@ button {
   line-height: 1.6;
   color: var(--ink-faint);
   word-break: break-word;
+}
+
+/* ---- 品牌字标 -------------------------------------------------------- */
+/* 贴在主界面左下角、紧贴左下底边。不加玻璃底、不加描边，与页脚一样裸在极光上。
+   SVG 的 fill 统一在根节点上，所以想换色改 .wordmark 里的 fill 即可。 */
+.wordmark {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  z-index: 25;
+  display: none;
+  /* 190px 定过一版，用户在此基础上放大 25% → 238px；但 238px 下「fl」糊成一团
+     （fl 区仅 52px 宽，笔画落到亚像素），故继续放大到笔画能分开的 420px。
+     用户看过实拍后最终选了 105px 的极小尺寸，当作纯粹的角落装饰 ——
+     这个尺寸下字母已不可读（fl 区仅 23px），要读字请调回 240px 以上。 */
+  width: var(--wordmark-w);
+  height: auto;                 /* 保持 2172:724 = 3 的原始比例 */
+  /* 纯黑压到弱化档，当签名用，不跟时钟和搜索框抢视线 */
+  opacity: 0.4;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* ---- 一言 · 常驻页脚 ------------------------------------------------- */
+/* 沿用「角标控件裸露」的定稿：不给玻璃底、不给描边，直接裸在极光上，
+   hover 只变文字色。 */
+.hitokoto-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  display: flex;
+  justify-content: center;
+  /* 预留一行高度：接口回来之前，页面不会往下跳一截 */
+  min-height: 40px;
+  /* 页脚在视口里居中，与时钟/搜索框同一条中线。
+     字标小的时候（左下角只占 100 来像素）不需要给它让位 —— 实测让位反而会让
+     页脚中心右移 60px，与主内容列错开。真的需要避让时（字标 > 240px），
+     把下面这行换回 `padding: 0 24px 10px calc(var(--wordmark-w) + 40px);` 即可 ——
+     verify_build 里有一条断言会盯着这件事。 */
+  padding: 0 24px 10px;
+  /* 整条不吃点击，只让下面那块文字可点 —— 别挡住快捷入口 */
+  pointer-events: none;
+}
+
+/* [hidden] 是 UA 样式，优先级低于类选择器；不显式写会被上面的 display:flex 顶掉 */
+.hitokoto-bar[hidden] {
+  display: none;
+}
+
+.hitokoto-btn {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 10px;
+  /* 页脚在视口里居中（与小字标共存时实测同中线） */
+  max-width: 760px;
+  padding: 5px 14px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--ink-soft);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  line-height: 1.6;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.hitokoto-btn:hover {
+  color: var(--ink);
+}
+
+.hitokoto-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.hitokoto-text {
+  font-family: var(--font-serif-cjk);   /* 引用正文用宋体，贴合落香的气质 */
+  font-size: 0.875rem;
+}
+
+.hitokoto-source {
+  color: var(--ink-faint);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.hitokoto-source[hidden] {
+  display: none;
 }
 
 .github-entry-card {

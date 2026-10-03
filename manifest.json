@@ -15,6 +15,7 @@
     "https://suggestqueries.google.com/*",
     "https://api.bing.com/*",
     "https://www.baidu.com/*",
-    "https://duckduckgo.com/*"
+    "https://duckduckgo.com/*",
+    "https://v1.hitokoto.cn/*"
   ]
 }

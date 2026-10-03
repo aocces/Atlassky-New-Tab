@@ -107,6 +107,20 @@ const weatherCityEmpty = document.getElementById("weatherCityEmpty");
 const toggleShortcuts = document.getElementById("toggleShortcuts");
 const toggleWallpaperAnim = document.getElementById("toggleWallpaperAnim");
 const toggleSuggestions = document.getElementById("toggleSuggestions");
+const toggleHitokoto = document.getElementById("toggleHitokoto");
+const toggleWordmark = document.getElementById("toggleWordmark");
+
+const customWallpaperImg = document.getElementById("customWallpaper");
+const wallpaperPicker = document.getElementById("wallpaperPicker");
+const wallpaperThumb = document.getElementById("wallpaperThumb");
+const chooseWallpaperBtn = document.getElementById("chooseWallpaperBtn");
+const clearWallpaperBtn = document.getElementById("clearWallpaperBtn");
+const wallpaperFile = document.getElementById("wallpaperFile");
+
+const hitokotoBar = document.getElementById("hitokotoBar");
+const hitokotoBtn = document.getElementById("hitokotoBtn");
+const hitokotoText = document.getElementById("hitokotoText");
+const hitokotoSource = document.getElementById("hitokotoSource");
 
 const toggleWeather = document.getElementById("toggleWeather");
 const openCustomEngineBtn = document.getElementById("openCustomEngineBtn");
@@ -219,6 +233,10 @@ let settings = load(STORAGE_SETTINGS, {
   // 空字符串 = 自动（定位优先，拿不到时按系统时区推断）；否则是 WEATHER_CITIES 里的城市 id
   weatherCity: "",
   suggestions: true,
+  // 一言页脚。取数与文案格式在 hitokoto.js，这里只管显隐
+  hitokoto: true,
+  // 左下角品牌标识
+  wordmark: true,
   customEngine: {
     name: "",
     urlTemplate: ""
@@ -485,6 +503,16 @@ function positionCustomSelectMenu(selectRoot) {
 
   const boundary = scroller.getBoundingClientRect();
   const triggerRect = trigger.getBoundingClientRect();
+
+  // 开着菜单继续滚面板，会把触发器带出可视区。菜单是贴着触发器定位的，
+  // 触发器不在区内，菜单无论往上还是往下展开都必然被裁掉一截。
+  // 这里直接收起 —— 与其显示半截菜单，不如让用户重新点开。
+  // （实测：面板滚到顶时触发器在可视区下方 56px，菜单下沿会溢出 48px。）
+  if (triggerRect.top < boundary.top || triggerRect.bottom > boundary.bottom) {
+    closeCustomSelect(selectRoot);
+    return;
+  }
+
   const naturalHeight = menu.offsetHeight;
 
   const spaceBelow = boundary.bottom - triggerRect.bottom - 8;
@@ -833,11 +861,90 @@ function handleWeatherPermissionRevoked() {
   showToast("天气定位授权已撤回");
 }
 
+/* ==========================================================================
+   一言（hitokoto）
+   取数与文案格式都在 hitokoto.js，这里只管「什么时候显示、显示在哪」。
+   和天气同一个原则：拿不到就整块隐藏，不留「暂无一言」这种死文案。
+   ========================================================================== */
+
+/**
+ * 左下角品牌标识的显隐。
+ * 显隐挂 body.has-wordmark，CSS 那边据此 display —— 不用 style.display，
+ * 这样用户自己写在开发者工具里的样式也不会被我们的逻辑反复覆盖。
+ */
+function applyWordmark() {
+  const on = settings.wordmark !== false;
+  document.body.classList.toggle("has-wordmark", on);
+  return on;
+}
+
+let hitokotoLoading = false;
+
+function showHitokotoBar() {
+  if (hitokotoBar) hitokotoBar.hidden = false;
+}
+
+function hideHitokotoBar() {
+  if (hitokotoBar) hitokotoBar.hidden = true;
+}
+
+/**
+ * 拉一句并填进页脚。
+ * @param {boolean} force 点「换一句」时传 true，强制重新请求
+ */
+async function loadHitokoto(force) {
+  if (typeof window.fetchHitokoto !== "function") {
+    hideHitokotoBar();
+    return;
+  }
+  // 屏上已经有句子时不重复请求 —— applySettings 在别的设置变动时也会被调到
+  if (!force && hitokotoBar && !hitokotoBar.hidden
+      && hitokotoText && hitokotoText.textContent) {
+    return;
+  }
+  if (hitokotoLoading) return;
+  hitokotoLoading = true;
+
+  try {
+    const item = await window.fetchHitokoto();
+    // 请求在飞行中时用户可能已经把开关关了。这句不能省 ——
+    // 少了它，一次慢响应就会把刚隐藏的页脚又显示出来。
+    if (settings.hitokoto === false) {
+      hideHitokotoBar();
+      return;
+    }
+    if (hitokotoText) hitokotoText.textContent = item.text;
+    if (hitokotoSource) {
+      const source = window.formatHitokotoSource(item);
+      hitokotoSource.textContent = source;
+      // 有些句子没有出处，别留一段空白的尾巴
+      hitokotoSource.hidden = !source;
+    }
+    showHitokotoBar();
+  } catch (error) {
+    // 网络不通、超时、返回体异常都走这里。页脚直接消失，不显示任何提示。
+    hideHitokotoBar();
+  } finally {
+    hitokotoLoading = false;
+  }
+}
+
+/** 跟随设置：关掉就收起，打开才去取。 */
+function syncHitokoto() {
+  if (settings.hitokoto === false) {
+    hideHitokotoBar();
+    return;
+  }
+  loadHitokoto(false);
+}
+
 /* 全局设置 */
 
 function applySettings() {
-  document.body.dataset.bg = settings.bg;
-  applyDynamicTheme(settings.bg);
+  // 背景：自定义壁纸时 data-bg 仍要是一个真实的极光主题（图没存好前背景保持原样），
+  // 位图图层的显隐、极光的停机、动效开关的置灰，都在 applyWallpaperBackground 里。
+  applyWallpaperBackground();
+  applyDynamicTheme(document.body.dataset.bg);
 
   syncCustomSelect(bgSelector, settings.bg);
   syncCustomSelect(engineSelector, settings.engine);
@@ -847,15 +954,24 @@ function applySettings() {
 
   if (toggleWallpaperAnim) toggleWallpaperAnim.checked = settings.wallpaperAnim !== false;
 
-  // 壁纸动效开关：通知 aurora 引擎
-  if (window.auroraEngine) {
-    window.auroraEngine.setAnimated(settings.wallpaperAnim !== false);
-  }
+  // 壁纸动效开关：applyWallpaperBackground 里已按「是否自定义壁纸」置灰并停机，
+  // 这里只需把开关的勾选状态同步上（它被禁用时用户也看不到变化）
 
   if (toggleWeather) toggleWeather.checked = settings.weather;
 
   // 搜索建议开关
   if (toggleSuggestions) toggleSuggestions.checked = settings.suggestions !== false;
+
+  // 一言页脚
+  if (toggleHitokoto) toggleHitokoto.checked = settings.hitokoto !== false;
+  syncHitokoto();
+
+  // 左下角品牌标识
+  if (toggleWordmark) toggleWordmark.checked = settings.wordmark !== false;
+  applyWordmark();
+
+  // 自定义壁纸（图层 + 选图区 + 缩略图）
+  syncWallpaperUi();
 
   if (shortcutSection) {
     shortcutSection.classList.toggle("hidden-shortcuts", !settings.shortcuts);
@@ -1395,6 +1511,161 @@ function refreshWeatherView(forceRequest = false) {
   renderWeatherCitySummary();
 }
 
+/* ==========================================================================
+   自定义壁纸（图片只存在本机，压缩与存储在 wallpaper.js）
+   与天气同一个原则：**不留死状态**。选了自定义壁纸但没选图时，背景保持原样，
+   选图框直接推到面前；存不下、压不动、非图片，都有明确提示且不留下半成品。
+   ========================================================================== */
+
+/** 当前生效的壁纸记录（来自 chrome.storage.local），null = 本机没有图 */
+let wallpaperRecord = null;
+/** 压缩 / 写盘进行中，挡住重复点击 */
+let wallpaperBusy = false;
+/**
+ * data-bg 要保持一个真实的极光主题 key，不能是 "custom"（aurora.js 不认它，
+ * 会默默回落到 image1）。所以单独记住「切到自定义之前的那个主题」，
+ * 选图期间背景才不会莫名变样。
+ */
+let lastMeshBg = "gradient";
+
+function hasWallpaperImage() {
+  return !!(wallpaperRecord && wallpaperRecord.dataUrl);
+}
+
+/**
+ * 把背景状态落到 DOM 上。启动（initWallpaper）与用户改动设置（applySettings）都要走这里，
+ * 否则会出现「用户改了才生效、重开页面就不对」的不一致。
+ * @returns {boolean} 自定义壁纸是否真的在显示
+ */
+function applyWallpaperBackground() {
+  const on = settings.bg === "custom" && hasWallpaperImage();
+  // data-bg 必须是真实的极光主题 key（aurora.js 不认 "custom"，会默默回落到 image1）
+  document.body.dataset.bg = settings.bg === "custom" ? lastMeshBg : settings.bg;
+  document.body.classList.toggle("has-custom-wallpaper", on);
+
+  // 深色壁纸时整套 UI 翻成暗色（只翻转文字与玻璃两类 token）。
+  // 阈值是算出来的交叉点，见 wallpaper.js 的 WALLPAPER_DARK_LUMA 注释。
+  const luma = wallpaperRecord ? wallpaperRecord.luma : null;
+  document.body.classList.toggle("dark-wallpaper", on && typeof luma === "number"
+    && luma < window.WALLPAPER_DARK_LUMA);
+
+  // 位图没法动效：切到自定义壁纸就把极光停掉，切回来再按用户开关恢复。
+  // 「壁纸动态效果」开关同时置灰（.setting-row:has(input:disabled) 已有样式）
+  if (toggleWallpaperAnim) toggleWallpaperAnim.disabled = on;
+  if (window.auroraEngine) {
+    window.auroraEngine.setAnimated(!on && settings.wallpaperAnim !== false);
+  }
+  return on;
+}
+
+function applyWallpaperLayer() {
+  if (!customWallpaperImg) return;
+  const next = hasWallpaperImage() ? wallpaperRecord.dataUrl : "";
+  if (customWallpaperImg.getAttribute("src") === next) return;
+  if (next) customWallpaperImg.setAttribute("src", next);
+  else customWallpaperImg.removeAttribute("src");
+}
+
+function syncWallpaperUi() {
+  const custom = settings.bg === "custom";
+  const showPicker = custom || hasWallpaperImage();
+
+  if (wallpaperPicker) wallpaperPicker.classList.toggle("hidden", !showPicker);
+
+  if (wallpaperThumb) {
+    if (hasWallpaperImage()) {
+      wallpaperThumb.style.backgroundImage = `url("${wallpaperRecord.dataUrl}")`;
+      wallpaperThumb.classList.add("has-image");
+    } else {
+      wallpaperThumb.style.backgroundImage = "";
+      wallpaperThumb.classList.remove("has-image");
+    }
+  }
+
+  if (chooseWallpaperBtn) chooseWallpaperBtn.disabled = wallpaperBusy;
+  if (clearWallpaperBtn) clearWallpaperBtn.disabled = !hasWallpaperImage() || wallpaperBusy;
+
+  applyWallpaperLayer();
+}
+
+/** 打开系统选图框。file input 必须是真在 DOM 里（用 .visually-hidden 藏起来）。 */
+function openWallpaperPicker() {
+  if (!wallpaperFile) return;
+  if (wallpaperFile.value) wallpaperFile.value = "";
+  wallpaperFile.click();
+}
+
+/**
+ * 压缩 → 存本机 → 立刻生效。任何一步失败都明确提示，并保证不留下「半张壁纸」。
+ * @returns {Promise<boolean>} 是否成功
+ */
+async function pickWallpaperFile(file) {
+  if (!file || wallpaperBusy) return false;
+  wallpaperBusy = true;
+  syncWallpaperUi();
+  try {
+    const record = await window.compressWallpaper(file);
+    // 顺手测一下平均亮度，决定要不要切暗色变体（阈值见 wallpaper.js）
+    record.luma = await window.analyzeWallpaperLuminance(record.dataUrl);
+    await window.wallpaperStore.set(record);
+    wallpaperRecord = record;
+    settings.bg = "custom";
+    persistSettings();
+    applySettings();
+    const size = window.formatWallpaperBytes(record.bytes);
+    showToast(`壁纸已存在本机 · ${record.w}×${record.h} · ${size}`
+      + (record.scaled ? "（已按屏幕压缩）" : ""));
+    return true;
+  } catch (error) {
+    // 压不动 / 配额不足 / 不是图片 —— 背景保持原样，只给一句人话
+    showToast(`壁纸没设成：${error && error.message ? error.message : "图片处理失败"}`);
+    return false;
+  } finally {
+    wallpaperBusy = false;
+    syncWallpaperUi();
+  }
+}
+
+/** 移除本机存的图，并回到极光主题。 */
+async function clearWallpaper() {
+  try {
+    await window.wallpaperStore.remove();
+  } catch (error) {
+    showToast("移除失败，本地存储没响应");
+    return;
+  }
+  wallpaperRecord = null;
+  if (settings.bg === "custom") {
+    settings.bg = lastMeshBg || "gradient";
+    persistSettings();
+  }
+  applySettings();
+  showToast("已移除自定义壁纸");
+}
+
+/** 启动时把本机存的图读回来。找不到图就退回极光，绝不留空白背景。 */
+async function initWallpaper() {
+  if (settings.bg !== "custom") lastMeshBg = settings.bg;
+  try {
+    wallpaperRecord = await window.wallpaperStore.get();
+  } catch (error) {
+    wallpaperRecord = null;
+  }
+  // 早于「深色变体」存下的记录没有 luma 字段，补测一次再落状态
+  if (wallpaperRecord && typeof wallpaperRecord.luma !== "number") {
+    wallpaperRecord.luma = await window.analyzeWallpaperLuminance(wallpaperRecord.dataUrl);
+    try { await window.wallpaperStore.set(wallpaperRecord); } catch (error) { /* 补测失败不影响显示 */ }
+  }
+  if (settings.bg === "custom" && !hasWallpaperImage()) {
+    settings.bg = lastMeshBg || "gradient";
+    persistSettings();
+    showToast("没找到已保存的壁纸，已切回原来的背景");
+  }
+  // 启动路径不走 applySettings（它一直是用户改动时才调），所以这里自己落一次背景状态
+  applyWallpaperBackground();
+  syncWallpaperUi();
+}
+
 /* 绑定事件 */
 
 renderWeatherCityList("");
@@ -1434,10 +1705,52 @@ if (weatherCitySearch) {
   });
 }
 
+/* --------------------------------------------------------------------------
+   滑动条自动隐藏
+   静止时滑动条是全透明的（写在 CSS 里），滚动时才现身，停手一会儿再收回去。
+   「正在滚」这件事 CSS 判断不了，只能脚本给正在滚的那个元素挂个标记。
+   scroll 事件不冒泡，所以在 document 上用捕获阶段听 —— 一处管全部滚动容器，
+   以后再新增容器不用回来补监听。
+   -------------------------------------------------------------------------- */
+
+const SCROLLBAR_IDLE_MS = 700;
+let scrollbarTimer = 0;
+let scrollbarTarget = null;
+
+function flashScrollbar(el) {
+  if (!el || !el.classList) return;
+
+  // 同一时刻只让一个容器亮着：换容器了就把上一个的标记摘掉
+  if (scrollbarTarget && scrollbarTarget !== el) {
+    scrollbarTarget.classList.remove("is-scrolling");
+  }
+  scrollbarTarget = el;
+  el.classList.add("is-scrolling");
+
+  window.clearTimeout(scrollbarTimer);
+  scrollbarTimer = window.setTimeout(() => {
+    if (scrollbarTarget) scrollbarTarget.classList.remove("is-scrolling");
+    scrollbarTarget = null;
+  }, SCROLLBAR_IDLE_MS);
+}
+
+document.addEventListener("scroll", (event) => {
+  flashScrollbar(event.target);
+}, true);
+
 setupCustomSelect(bgSelector, (value) => {
+  // 记住切走之前的极光主题：自定义壁纸没配好时，背景要停在原样而不是空白
+  if (value !== "custom") lastMeshBg = value;
   settings.bg = value;
   persistSettings();
   applySettings();
+
+  // 选了「自定义壁纸」但本机还没图 —— 把选图框推到面前，并说明背景暂时不变。
+  // 不用「先切过去再等图」：那一瞬背景会变成一块空白，是这个功能最糟的状态。
+  if (value === "custom" && !hasWallpaperImage()) {
+    openWallpaperPicker();
+    showToast("先选一张图片，背景暂时保持原样");
+  }
 });
 
 setupCustomSelect(weatherCitySelector, (value) => {
@@ -1476,6 +1789,52 @@ if (toggleSuggestions) {
     persistSettings();
   });
 }
+
+if (toggleHitokoto) {
+  toggleHitokoto.addEventListener("change", () => {
+    settings.hitokoto = toggleHitokoto.checked;
+    persistSettings();
+    applySettings();
+  });
+}
+
+if (toggleWordmark) {
+  toggleWordmark.addEventListener("change", () => {
+    settings.wordmark = toggleWordmark.checked;
+    persistSettings();
+    applyWordmark();
+  });
+}
+
+if (hitokotoBtn) {
+  hitokotoBtn.addEventListener("click", () => {
+    loadHitokoto(true);
+  });
+}
+
+if (chooseWallpaperBtn) {
+  chooseWallpaperBtn.addEventListener("click", () => openWallpaperPicker());
+}
+
+if (clearWallpaperBtn) {
+  clearWallpaperBtn.addEventListener("click", () => clearWallpaper());
+}
+
+if (wallpaperFile) {
+  wallpaperFile.addEventListener("change", () => {
+    const file = wallpaperFile.files && wallpaperFile.files[0];
+    // 处理完就把 input 清空，否则重选同一张文件不会再触发 change
+    wallpaperFile.value = "";
+    if (file) pickWallpaperFile(file);
+  });
+}
+
+// 启动时把本机存的壁纸读回来（异步，不阻塞首屏；图没到位前背景是极光，不会空白）
+initWallpaper();
+
+// 标识显隐也要在启动时落一次：applySettings 只在用户改动设置时才调，
+// 少了这一句，用户关掉标识后刷新页面又会冒出来
+applyWordmark();
 
 if (toggleShortcuts) {
   toggleShortcuts.addEventListener("change", () => {
