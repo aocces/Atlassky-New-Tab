@@ -1,8 +1,23 @@
 {
   "manifest_version": 3,
-  "name": "Soft New Tab Pro",
+  "name": "flower new tab",
   "version": "3.2.0",
-  "description": "一个带时钟、搜索建议、快捷入口、设置面板和天气显示的新标签页插件",
+  "description": "一个带时钟、搜索建议、一言、自定义壁纸、快捷入口、设置面板和天气显示的新标签页扩展",
+  "icons": {
+    "16": "assets/icons/icon-16.png",
+    "32": "assets/icons/icon-32.png",
+    "48": "assets/icons/icon-48.png",
+    "128": "assets/icons/icon-128.png"
+  },
+  "action": {
+    "default_title": "flower new tab",
+    "default_icon": {
+      "16": "assets/icons/icon-16.png",
+      "32": "assets/icons/icon-32.png",
+      "48": "assets/icons/icon-48.png",
+      "128": "assets/icons/icon-128.png"
+    }
+  },
   "chrome_url_overrides": {
     "newtab": "newtab.html"
   },

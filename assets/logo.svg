@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="flower new tab">
+  <!--
+    flower new tab 的图标。
+    五瓣墨色花 + 暖琥珀花心：与界面的墨色体系（#3A3532）和暖色强调（#d69e2e）同源。
+    刻意画得「粗壮、间隙大」—— 16px 下细笔画会糊成一团，
+    宁可少一点细节，也要保证最小尺寸仍认得出是一朵花。
+  -->
+  <defs>
+    <g id="petal">
+      <!-- 单瓣：根部收在花心，瓣尖朝上；宽 20、根部张开，瓣间留出明显空隙 -->
+      <path d="M64 66 C53 52 52 30 64 18 C76 30 75 52 64 66 Z"/>
+    </g>
+  </defs>
+
+  <g fill="#3A3532">
+    <use href="#petal" transform="rotate(0 64 64)"/>
+    <use href="#petal" transform="rotate(72 64 64)"/>
+    <use href="#petal" transform="rotate(144 64 64)"/>
+    <use href="#petal" transform="rotate(216 64 64)"/>
+    <use href="#petal" transform="rotate(288 64 64)"/>
+  </g>
+
+  <!-- 花心：暖琥珀，一眼给点焦点，16px 时是识别锚点 -->
+  <circle cx="64" cy="64" r="13" fill="#D69E2E"/>
+  <!-- 花心内的一点高光，避免大尺寸下显得是死板的圆 -->
+  <circle cx="59.5" cy="59.5" r="4" fill="#EFC15E"/>
+</svg>

@@ -1,9 +1,11 @@
-# Soft New Tab Pro
+# flower new tab
 
 极简风格的浏览器新标签页扩展（Chrome MV3）。当前版本 **3.2.0**。
 
-> 前身名为 *Soft New Tab*，现名 *Soft New Tab Pro*。
+> 前身名为 *Soft New Tab* → *Soft New Tab Pro*，2026-10-03 起更名为 **flower new tab**。
 > 版本变更见 [CHANGELOG.md](CHANGELOG.md)。
+
+![图标](assets/icons/icon-128.png)
 
 ---
 
@@ -12,7 +14,9 @@
 - 🕐 **时钟与日期** — 艺术大字时钟（Fraunces）+ 中文日期，随时间自然刷新
 - 🔍 **搜索建议** — 集成 Google / Bing / 百度 / DuckDuckGo，亦可自定义搜索引擎
 - ⚡ **快捷入口** — 图标自动获取（本地 Favicon API），支持增删
-- 🌤️ **天气胶囊** — 基于 `api.open-meteo.com`，无需 API Key
+- 🌤️ **天气胶囊** — 基于 `api.open-meteo.com`，无需 API Key，拿不到定位也有三级兜底
+- 🖼️ **自定义壁纸** — 选图后压缩存在本机（`chrome.storage.local`），**不上传任何服务器**；深色壁纸自动切暗色界面
+- 💬 **一言** — 每次开新标签换一句，点一下换下一句，取不到就整块隐藏
 - 🎨 **极光背景** — mesh 渐变极光，可开关动效
 - 🔤 **字体自托管** — 五款开源字体随扩展内置，离线可用、无第三方字体请求
 - 🪶 **权限克制** — 只在需要时申请，不注入内容脚本、不读取浏览记录
@@ -46,6 +50,12 @@
 ├── script.js              # 主逻辑（设置、建议、快捷入口、弹窗）
 ├── aurora.js              # 极光背景引擎（mesh 渐变）
 ├── weather.js             # 天气模块
+├── hitokoto.js            # 一言模块
+├── wallpaper.js           # 自定义壁纸（压缩 + 本机存储）
+├── assets/
+│   ├── logo.svg           # 扩展图标源文件
+│   ├── icons/             # 各尺寸 PNG（manifest 的 icons 用这份）
+│   └── wordmark.svg       # 页面左下角的品牌字标
 ├── fonts/                 # 内置自托管字体（214 个分片 + fonts.css）
 │   └── licenses/          # 第三方字体许可全文（OFL 1.1）
 ├── CHANGELOG.md           # 版本记录

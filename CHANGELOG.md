@@ -33,6 +33,17 @@
 
 ### 变更
 
+- **更名：Soft New Tab Pro → flower new tab**（2026-10-03）。`manifest.name`、页面 `<title>`、
+  README 与更多面板的品牌区同步更名；版权行署名一并改为新名。
+  **GitHub 仓库名 `Atlassky-New-Tab` 不变** —— 那是仓库地址，不是产品名，改了会打断既有链接。
+- **新增扩展图标**（此前 `manifest.json` 没有任何 `icons` 字段，Chrome 显示的是通用拼图图标）：
+  - `assets/logo.svg` 为源文件：五瓣墨色花（`#3A3532`）+ 暖琥珀花心（`#D69E2E`），
+    与界面的墨色体系和暖色强调同源
+  - `assets/icons/icon-{16,32,48,128,512}.png` 为渲染产物。
+    **花瓣刻意画得粗壮、瓣间空隙大**：16px 下细笔画会糊成一团，
+    宁可少细节也要保证最小尺寸仍认得出是一朵花
+  - `manifest.json` 接入 `icons` 与 `action.default_icon`（工具栏按钮）
+  - 更多面板底部新增品牌区块，用的是同一份 `assets/icons/icon-48.png`
 - **四家搜索引擎改为各调自己的官方建议接口**，不再经过任何中间层：
 
   | 引擎 | 官方接口 | 返回形状 |

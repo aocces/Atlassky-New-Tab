@@ -1,5 +1,5 @@
 /* ==========================================================================
-   落香 · Soft New Tab Pro  v1.4.0
+   flower new tab · 3.2.0
    视觉层按《Atlassky New Tab · 融合设计稿》第 11 屏规范重写。
    - 极光与玻璃材质保留，色彩收敛为单一强调色 #2758D8
    - 阴影只用于浮层（抽屉 / 弹窗 / 下拉），全部中性灰
@@ -1544,6 +1544,39 @@ body.has-custom-wallpaper #auroraCanvas {
   word-break: break-word;
 }
 
+/* ---- 品牌区块（更多面板底部）------------------------------------------ */
+/* 图标与 manifest 的 icons 用同一份 assets/icons，不会各画各的 */
+.more-identity {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--hairline);
+}
+
+.app-logo {
+  display: block;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  margin-bottom: 4px;
+}
+
+.app-name {
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  color: var(--ink);
+  letter-spacing: 0.01em;
+}
+
+/* 品牌区是居中的，版本号与版权那两行也要跟着居中，且去掉原来的左右内缩 */
+.more-identity .more-meta-row,
+.more-identity .more-copyright {
+  padding: 0;
+  text-align: center;
+}
+
 /* ---- 品牌字标 -------------------------------------------------------- */
 /* 贴在主界面左下角、紧贴左下底边。不加玻璃底、不加描边，与页脚一样裸在极光上。
    SVG 的 fill 统一在根节点上，所以想换色改 .wordmark 里的 fill 即可。 */
@@ -1624,7 +1657,7 @@ body.has-custom-wallpaper #auroraCanvas {
 }
 
 .hitokoto-text {
-  font-family: var(--font-serif-cjk);   /* 引用正文用宋体，贴合落香的气质 */
+  font-family: var(--font-serif-cjk);   /* 引用正文用宋体，贴合整体的气质 */
   font-size: 0.875rem;
 }
 
