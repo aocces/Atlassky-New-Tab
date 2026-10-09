@@ -220,6 +220,47 @@ const THEME_PRESETS = {
     shadow: "rgba(103, 120, 128, 0.15)",
     toastBg: "rgba(244, 248, 250, 0.72)",
     toastBorder: "rgba(236, 243, 246, 0.78)"
+  },
+
+  /* ── 以下三套对应 aurora.js 里新增的 celadon / lilac / peach ──────────
+     规律与上面五套一致：primary 取主题里的中间调**并且再压一档去饱和**，
+     否则界面控件（开关、滑块、焦点环）会比背景更跳。
+     surface 一律用「主题色倾向的白」而不是纯白，纯白在暖调背景上会显脏。 */
+
+  celadon: {
+    primary: "#7d9079",
+    primaryStrong: "#5f6f5c",
+    surface: "rgba(246, 250, 243, 0.2)",
+    surfaceStrong: "rgba(234, 243, 230, 0.32)",
+    border: "rgba(242, 248, 239, 0.64)",
+    ring: "rgba(125, 144, 121, 0.16)",
+    shadow: "rgba(98, 116, 95, 0.15)",
+    toastBg: "rgba(244, 249, 241, 0.72)",
+    toastBorder: "rgba(235, 244, 232, 0.78)"
+  },
+
+  lilac: {
+    primary: "#8b8398",
+    primaryStrong: "#6d6679",
+    surface: "rgba(248, 246, 252, 0.2)",
+    surfaceStrong: "rgba(238, 234, 246, 0.32)",
+    border: "rgba(243, 240, 249, 0.64)",
+    ring: "rgba(139, 131, 152, 0.16)",
+    shadow: "rgba(110, 103, 124, 0.15)",
+    toastBg: "rgba(247, 245, 251, 0.72)",
+    toastBorder: "rgba(238, 234, 246, 0.78)"
+  },
+
+  peach: {
+    primary: "#b08a78",
+    primaryStrong: "#8f6d5e",
+    surface: "rgba(255, 249, 246, 0.2)",
+    surfaceStrong: "rgba(250, 240, 236, 0.32)",
+    border: "rgba(253, 245, 241, 0.64)",
+    ring: "rgba(176, 138, 120, 0.16)",
+    shadow: "rgba(143, 109, 94, 0.15)",
+    toastBg: "rgba(253, 246, 242, 0.72)",
+    toastBorder: "rgba(248, 238, 233, 0.78)"
   }
 };
 

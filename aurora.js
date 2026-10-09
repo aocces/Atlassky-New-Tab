@@ -130,6 +130,110 @@
         { r: 230, g: 238, b: 242 },
         { r: 205, g: 218, b: 230 },
       ]
+    },
+
+    /* ══════════════════════════════════════════════════════════════
+       以下三套是 2.3.0 之后新增。选色遵循两条硬约束：
+
+       ① **色相家族不与已有的五套重复**。原有的是暖米（gradient）、
+          橙黄（warm）、蓝白（cool）、深绯（image1）、青蓝（image2），
+          **绿色与紫色两个家族整个是空的**，粉橙也只在 image1 里以暗色出现过。
+          所以补的是：青柠（黄绿）、淡紫藤（紫）、蜜桃（粉橙）。
+
+       ② **必须比 image1 / image2 亮得多**。界面文字是墨色 #3A3532
+          （相对亮度 Y≈0.037），AA 正文 4.5:1 要求背景 Y≥0.34。
+          image1 最暗点 Y≈0.10、image2 最暗点 Y≈0.16 —— 那两套本来就
+          达不到这个数，是「无深色模式」那条 P0 缺陷的表现。
+          下面三套的最暗点分别 Y≈0.42 / 0.42 / 0.52，**全部留足余量**，
+          深浅层次靠「最亮点接近白」来拉，不靠压暗暗部。
+       ══════════════════════════════════════════════════════════════ */
+
+    /**
+     * celadon — 青柠晨雾
+     * 黄绿家族。R 中、G 高、B 偏低，是三者里唯一带黄味的绿，
+     * 与 cool 的蓝白、image2 的青蓝都拉得开。
+     * 动法：**慢、幅度大** —— 像清晨的雾在缓慢流动，一个周期约 25 秒。
+     */
+    celadon: {
+      accent:       "#6f8f6a",
+      accentStrong: "#52704e",
+      accentShadow: "rgba(96, 128, 92, 0.18)",
+      accentRing:   "rgba(111, 143, 106, 0.16)",
+      motion: {
+        speedX: [0.00016, 0.00026],
+        speedY: [0.00014, 0.00022],
+        ampX:   [0.26, 0.40],
+        ampY:   [0.22, 0.36]
+      },
+      points: [
+        { r: 214, g: 232, b: 205 },   // 淡青绿
+        { r: 232, g: 240, b: 214 },   // 浅嫩芽
+        { r: 249, g: 253, b: 241 },   // 近白（最亮）
+        { r: 198, g: 224, b: 196 },   // 青灰绿
+        { r: 222, g: 238, b: 210 },   // 晨雾绿
+        { r: 205, g: 229, b: 215 },   // 偏蓝的绿（冷调变化）
+        { r: 241, g: 249, b: 227 },   // 浅奶绿
+        { r: 146, g: 182, b: 158 },   // 深青绿（暗锚点，Y≈0.42）
+      ]
+    },
+
+    /**
+     * lilac — 淡紫藤
+     * 紫色家族，是现有五套里完全空缺的一环。R/B 中高、G 明显偏低，
+     * 亮部往白走（不是往粉走），所以整体是**冷紫**而非粉紫，
+     * 和蜜桃那套的暖粉正好构成一对冷暖对照。
+     * 动法：**中速、幅度小** —— 接近水面涟漪，安静一点，周期约 18 秒。
+     */
+    lilac: {
+      accent:       "#8a7aa8",
+      accentStrong: "#6b5c87",
+      accentShadow: "rgba(120, 104, 150, 0.18)",
+      accentRing:   "rgba(138, 122, 168, 0.16)",
+      motion: {
+        speedX: [0.00030, 0.00040],
+        speedY: [0.00028, 0.00036],
+        ampX:   [0.14, 0.22],
+        ampY:   [0.12, 0.20]
+      },
+      points: [
+        { r: 222, g: 210, b: 238 },   // 淡紫
+        { r: 236, g: 224, b: 246 },   // 浅薰衣草
+        { r: 251, g: 245, b: 253 },   // 近白（最亮）
+        { r: 208, g: 196, b: 228 },   // 灰紫
+        { r: 230, g: 216, b: 242 },   // 藕荷
+        { r: 214, g: 204, b: 236 },   // 偏蓝紫
+        { r: 245, g: 237, b: 251 },   // 极浅紫
+        { r: 182, g: 166, b: 208 },   // 深紫（暗锚点，Y≈0.42）
+      ]
+    },
+
+    /**
+     * peach — 蜜桃晨曦
+     * 粉橙家族。R 高、G 中高、B 中高，色相在 15°~25° 之间，
+     * 比 warm（焦糖橙黄，色相更靠 35°）更偏粉，和 gradient（暖米）也拉得开。
+     * 动法：**偏快、幅度中等** —— 暖流涌动，周期约 11 秒，是三套里最活泼的。
+     */
+    peach: {
+      accent:       "#c98a72",
+      accentStrong: "#a56a54",
+      accentShadow: "rgba(180, 118, 94, 0.18)",
+      accentRing:   "rgba(201, 138, 114, 0.16)",
+      motion: {
+        speedX: [0.00040, 0.00058],
+        speedY: [0.00034, 0.00050],
+        ampX:   [0.20, 0.32],
+        ampY:   [0.16, 0.28]
+      },
+      points: [
+        { r: 250, g: 226, b: 214 },   // 蜜桃
+        { r: 255, g: 238, b: 228 },   // 浅桃粉
+        { r: 255, g: 249, b: 241 },   // 近白（最亮）
+        { r: 240, g: 214, b: 200 },   // 暖桃
+        { r: 252, g: 232, b: 216 },   // 淡蜜
+        { r: 246, g: 220, b: 214 },   // 偏粉
+        { r: 255, g: 243, b: 233 },   // 极浅
+        { r: 224, g: 182, b: 172 },   // 深蜜桃（暗锚点，Y≈0.52）
+      ]
     }
   };
 
@@ -148,9 +252,22 @@
 
   /* ─────────────────────────────────────────────────────────
      MeshPoint — 颜色控制点
+
+     动法可以按主题给（motion），不给就用下面这套默认区间。
+     取值是 [min, max]，每个点在区间内随机 —— 保留「不整齐」的手感，
+     但整体快慢与活动范围由主题决定。
   ───────────────────────────────────────────────────────── */
+
+  // 默认动法：与 2.3.0 之前的随机区间完全一致，老主题的画面不会有任何变化
+  const DEFAULT_MOTION = {
+    speedX: [0.00028, 0.00046],
+    speedY: [0.00024, 0.00040],
+    ampX:   [0.22, 0.38],
+    ampY:   [0.18, 0.32]
+  };
+
   class MeshPoint {
-    constructor(color, index, total) {
+    constructor(color, index, total, motion) {
       this.r = color.r;
       this.g = color.g;
       this.b = color.b;
@@ -165,13 +282,18 @@
       this.phaseX = Math.random() * Math.PI * 2;
       this.phaseY = Math.random() * Math.PI * 2;
 
-      // ★ 速度比 v2 快 5 倍，约 6~10s 一个周期
-      this.speedX = 0.00028 + Math.random() * 0.00018;
-      this.speedY = 0.00024 + Math.random() * 0.00016;
+      const m = motion || DEFAULT_MOTION;
+      const pick = (range) => range[0] + Math.random() * (range[1] - range[0]);
 
-      // ★ 漂移幅度加大，运动范围更大
-      this.ampX = 0.22 + Math.random() * 0.16;
-      this.ampY = 0.18 + Math.random() * 0.14;
+      this.speedX = pick(m.speedX);
+      this.speedY = pick(m.speedY);
+      this.ampX   = pick(m.ampX);
+      this.ampY   = pick(m.ampY);
+    }
+
+    /** 一个完整漂移周期的时长（毫秒），用来在文档里说明各主题的「快慢」 */
+    periodMs() {
+      return Math.round(2 * Math.PI / Math.max(this.speedX, this.speedY));
     }
 
     pos(t) {
@@ -407,8 +529,10 @@
 
       if (MESH_THEMES[key]) {
         this.isMesh = true;
-        const pts = MESH_THEMES[key].points;
-        const meshPts = pts.map((c, i) => new MeshPoint(c, i, pts.length));
+        const th = MESH_THEMES[key];
+        const pts = th.points;
+        // 把主题的 motion 一并传下去：配色与动法是一套方案的两半
+        const meshPts = pts.map((c, i) => new MeshPoint(c, i, pts.length, th.motion));
         this.mesh.setPoints(meshPts);
       } else {
         this.isMesh = false;
